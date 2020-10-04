@@ -24,13 +24,17 @@ class MainApp(tk.Tk):
         self.main_frame.rowconfigure(0, weight=1)
         self.main_frame.columnconfigure(0, weight=1)
 
-        # Basically, here i will create some need attributes for working with external classes
+        # Basically, here i create some need attributes for working with external classes
         self.frames = {}
-        # self.new_windows = {} # specially added dict to keep watching that we open just one TopLevel-window from every button
         self.timer_check = False # well now i need to check timer in mainapp, so i deleted is_timer_on in TimerFrame
         self.timer_task = None
+        self.time = datetime.datetime.now().replace(hour=0, minute=0, second=0)
+        self.after_id = None # id for after_cancel
+        self.stop_val = 0
+        # i dont like stop_val attr, maybe i'll try to replace it with smth else
 
         for fr in (TopButtonsFrame, TimerButtonFrame, TimerFrame):
+            print(fr)
             frame = fr(self.main_frame, self)
             self.frames[fr] = frame
             frame.pack()
@@ -45,28 +49,35 @@ class MainApp(tk.Tk):
 
     def start_count(self, contr):
         frame = self.frames[contr]
-        time = datetime.datetime.strptime(frame.timer_var.get(), '%H:%M:%S')
-        if self.timer_check:
+        if self.timer_check or not self.stop_val:
             return
         self.timer_check = True
-        self.change_time(frame, time)
+        self.change_time(frame)
 
-    def change_time(self, frame, time):
-        if time.hour + time.minute + time.second <= 0: self.timer_check = False; return
-        time -= self.delta
-        frame.timer_var.set(time.strftime('%H:%M:%S'))
-        self.after(1000, func=lambda: self.change_time(frame, time))
+    def change_time(self, frame):
+        self.time -= self.delta
+        print(self.time)
+        self.stop_val = self.time.hour+self.time.minute+self.time.second
+        print(self.stop_val)
+        frame.change_time(self.time.hour, self.time.minute, self.time.second)
+        self.after_id = self.after(1000, func=lambda: self.change_time(frame))
+        if not self.stop_val:
+            print('we finally here')
+            self.after_cancel(self.after_id)
+            self.timer_check = False
 
-    def update_timer(self, time_data, restart=False):
+    def update_timer(self, time, task, restart=False):
         """Restart flag is used for checking
         if we try to restart already working timer"""
         frame = self.frames[TimerFrame]
-        print(frame.buffer_time, frame.timer_var)
-        if not restart:
-            frame.timer_var.set(time_data.strftime("%H:%M:%S"))
-        else:
-            pass
-    
+        frame.change_time(time.hour, time.minute, time.second)
+        if  restart:
+            self.after_cancel(self.after_id) # after_cancel get after-function id and stop after
+            self.timer_check = False
+        self.time = frame.get_time
+        self.stop_val = self.time.hour+self.time.minute+self.time.second
+        print(self.time)
+        self.timer_task = task
 
 class TopButtonsFrame(tk.Frame):
     """Frame that contain 3 buttons, that call some TopLevel-windows"""
@@ -82,19 +93,11 @@ class TopButtonsFrame(tk.Frame):
         btn3.grid(row=0, column=2, sticky='nsew')
 
     def create_new_window(self, cls, controller):
-        # print(controller.new_windows)
-        # here we check if we have already open windows
-        # if controller.new_windows.get(cls):
-        #     return
-        # controller.new_windows[cls] = self
-        # new_window = cls(controller)
         if cls.total:
             return
         new_window = cls(controller)
         # attributes('-topmost', 'true') added to get TopLevel appear in fron of tk.Tk
         new_window.attributes('-topmost', 'true')
-
-
 
 
 class TimerButtonFrame(tk.Frame):
@@ -128,69 +131,74 @@ class TimerFrame(tk.Frame):
         self.timer_var.set(self.buffer_time.strftime("%H:%M:%S"))
         self.timer_lbl = tk.Label(self, textvariable=self.timer_var, font=FONT_FOR_TIMER)
         self.timer_lbl.pack()
+ 
+    @property
+    def get_time(self):
+        return self.buffer_time
 
+    def change_time(self, hour:int, minute:int, second:int):
+        self.buffer_time = self.buffer_time.replace(hour=hour, minute=minute, second=second)
+        self.timer_var.set(self.buffer_time.strftime("%H:%M:%S"))
 
 
 class SettingTimerWindow(tk.Toplevel):
 
-    total = 0
+    total = 0 # with this value we keep number of new windows at 1
 
     def __init__(self, parent):
-        SettingTimerWindow.total += 1
+        SettingTimerWindow.total = 1
         tk.Toplevel.__init__(self, parent)
         self.title('Set up Timer')
         self.geometry('240x130+%d+%d' % parent.set_geometry())
         self.resizable(False, False)
-        self.protocol("WM_DELETE_WINDOW", func=lambda: self.close(parent))
-        # that thing above this comment just add new func to close-button [x]
+        self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
+        # thing above this comment just add new func to close-button [x]
 
         inner_frame = tk.Frame(self)
         inner_frame.pack()
 
         lbl1 = tk.Label(inner_frame, text='How many time do you want to work?')
         lbl2 = tk.Label(inner_frame, text='What is the point of this timer?')
-        self.test_field_1 = tk.Entry(inner_frame, width=20)
-        self.test_field_2 = tk.Entry(inner_frame, width=20)
-        btn1 = ttk.Button(inner_frame, text='To the timer...', command=lambda: self.time_it(parent))
+        self.time_field = tk.Entry(inner_frame, width=20)
+        self.task_field = tk.Entry(inner_frame, width=20)
+        btn1 = ttk.Button(inner_frame,
+                          text='To the timer...',
+                          command=lambda: self.time_it(parent))
 
         lbl1.pack()
-        self.test_field_1.pack()
+        self.time_field.pack()
+        self.time_field.insert(0,  "00:00:00")
         lbl2.pack()
-        self.test_field_2.pack()
+        self.task_field.pack()
         btn1.pack(pady=10)
         
     def time_it(self, controller):
-        if controller.timer_check and not messagebox.askyesno('Restart timer', 'Do you want to restart timer?', parent=self):
-            return
-        time = self.test_field_1.get()
-        task = self.test_field_2.get()
+        time = self.time_field.get()
+        task = self.task_field.get()
         if not task:
             task = 'Just for fun!'
         try:
             time = datetime.datetime.strptime(time, '%H:%M:%S')
         except ValueError:
-            # parent argument for the messagebox is added to get box appear in front of toplevel -----------here
-            messagebox.showerror('Wrong Data/Time Format', 'You need to enter time in HH:MM:SS-format', parent=self) 
-            self.test_field_1.delete(0, 999999)
-            self.test_field_1.insert(0, "00:00:00")
+            # parent argument for the messagebox is added to get box appear in front of toplevel
+            messagebox.showerror('Wrong Data/Time Format',
+                                 'You need to enter time in HH:MM:SS-format',
+                                  parent=self) 
+            self.time_field.delete(0, 'end')
+            self.time_field.insert(0, "00:00:00")
         else:
-            SettingTimerWindow.total = 0
-            controller.timer_task = task
-            controller.update_timer(time)
-            self.close(controller)
+            if controller.timer_check and messagebox.askyesno('Restart timer',
+                                                             'Do you want to restart timer?',
+                                                              parent=self):
+                print('Here we restart')
+                controller.update_timer(time, task, True)
+            else:
+                controller.update_timer(time, task)
+            self.close()
 
-
-    def close(self, controller):
-        # well with type(x) i finally can delete key-clsss in my dict and don't touch attr directly :)
-        # del controller.new_windows[type(self)] 
+    def close(self):
+        SettingTimerWindow.total = 0
         self.destroy()
 
 app = MainApp()
 app.mainloop()
-
-# Today, 01.10, i find nice error - i can't open TopLevel when i set timer, but don't start it
-# i need to find out how open it
-# I was wrong. The error was when i closed TopLevel with [x]. So, i use self.protocol('WM_DELETE_WINDOW, my_func)
-# and now it is work well
-
-# today i end my journey. I will try to fix restart timer tomorrow
