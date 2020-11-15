@@ -111,13 +111,18 @@ def update_graph_data(data:dict, data_list:tuple):
     data['year_months'][month] = sum(list(data['month_days'].values()))
 
 
-def get_data(key_to: str) -> dict:
+def get_bar_data(key_to: str) -> dict:
     with open(os.path.dirname(os.path.abspath(__file__)) + '\\test.json', 'r') as test:
         a = json.load(test)
         f = a['minutes_data']
     data = f[key_to]
     return data
 
+def get_pie_data() -> dict:
+    with open(os.path.dirname(os.path.abspath(__file__)) + '\\test.json', 'r') as test:
+        a = json.load(test)
+        f = a['activities_data']
+    return f
 
 try:
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:

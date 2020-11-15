@@ -1,10 +1,6 @@
 import json_keep as jk
-from plot_stat import WorkingBar
-
+from plot_stat import WorkingBar, BarPlotStat, PiePlotStat, LaunchesTable
 import datetime
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-import numpy as np
 import os.path
 import tkinter as tk
 from tkinter import messagebox
@@ -65,9 +61,8 @@ class MainApp(tk.Tk):
             frame.pack()
 
     def set_geometry(self):
-        w = self.winfo_screenwidth() # узнаем ширину экрана
-        h = self.winfo_screenheight() # узнаем высоту экрана
-        # осуществляем центровку, числа 200 подходят для моего экрана лол
+        w = self.winfo_screenwidth()
+        h = self.winfo_screenheight()
         w = w//2 - 180
         h = h//2 - 200
         return w, h
@@ -399,7 +394,6 @@ class StatisticWindow(tk.Toplevel):
         StatisticWindow.total = 1
         tk.Toplevel.__init__(self, parent)
         self.title('Stats and Graphs')
-        self.geometry('500x300+%d+%d' % parent.set_geometry())
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
         self.grid_rowconfigure(0, weight=1)
@@ -407,61 +401,18 @@ class StatisticWindow(tk.Toplevel):
         inner_frame = tk.Frame(self)
         inner_frame.pack()
 
-        self.combobox = ttk.Combobox(inner_frame,
-                                     values = ['For a day',
-                                                'For a week',
-                                                'For a month',
-                                                'For a year']
-                                    )
-        self.combobox.bind('<<ComboboxSelected>>', self.change_data)
-        self.combobox.current(0)
-        self.combobox.pack(side='top')
+        self.frames = {}
 
-        self.fig = Figure(figsize=(5,5), dpi=100)
-        self.ax = self.fig.add_subplot(111)
-        self.bb = [] # bars-box
+        for F in (BarPlotStat, PiePlotStat, LaunchesTable):
+            fr = F(inner_frame, self)
+            self.frames[F] = fr
+            fr.grid(row=0, column=0, sticky='nsew')
         
-        self.canvas = FigureCanvasTkAgg(self.fig, inner_frame)
-        self.canvas.draw()
+        self.switch_page(BarPlotStat)
 
-        self.create_graph(self.get_data('day_hours'))
-        self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-    def get_data(self, ds:str):
-        data = jk.get_data(ds)
-        x, y = list(data.keys()), list(data.values())
-        return x, y
-
-    def create_graph(self, data:tuple):
-        x, y = data
-        bars = self.ax.bar(x, y, color='c')
-        if len(x) > 12:
-            if len(x) == 31:
-                arr = np.arange(0, 32, 7)
-                self.ax.set_xticks(arr)
-            elif len(x) == 30:
-                arr = np.arange(1, 32, 6)
-                self.ax.set_xticks(arr)
-            elif len(x) == 24:
-                arr = np.concatenate((np.array([0]), np.arange(0, 19, 6), np.array([23])))
-                self.ax.set_xticks(arr)
-        for bar in bars:
-            annot = self.ax.annotate('', xy=(-1,-10), xytext=(-20, 23), textcoords='offset points',
-                                    bbox=dict(boxstyle='round', fc='w'),
-                                    arrowprops=dict(arrowstyle='->'))
-            new_bar = WorkingBar(bar, annot)
-            new_bar.connect()
-            self.bb.append(new_bar)
-
-    def change_data(self, event):
-        ds = self.combobox.get() #datastring
-        dct = {'For a day':'day_hours',
-               'For a week':'week_days',
-               'For a month':'month_days',
-               'For a year':'year_months'}
-        self.ax.clear()
-        self.create_graph(self.get_data(dct[ds]))
-        self.canvas.draw()
+    def switch_page(self, cont):
+        fr = self.frames[cont]
+        fr.tkraise()
 
     def close(self):
         StatisticWindow.total = 0
