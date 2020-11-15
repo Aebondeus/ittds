@@ -3,8 +3,6 @@ This is the part of app that serialize all data
 from main app in json-format
 """
 
-
-
 import json
 import datetime
 import os.path
@@ -13,9 +11,6 @@ days_of_the_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 monthnames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 daynames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ]
-
-def isleap(year:int):
-    return year % 4 == 0 and (year % 100 != 0 and year % 400 == 0)
 
 # original pattern for json-file
 data = {
@@ -28,9 +23,25 @@ data = {
         'cur_week':0, 'week_day':0,'day_hours':{}
     }
 }
+activities = {
+    'Work':0, 'Study':0, 'Chill':0, 'Sport':0,
+    'Games':0, 'Reading':0, 'Cooking':0, 'None of that':0
+}
 
-def update_data(year=0, month=(), day='', week_num=0, week_day=0, day_hours={}):
+main_data = {
+    'minutes_data':data,
+    'activities_data':activities
+}
+
+
+
+def isleap(year:int):
+    return year % 4 == 0 and (year % 100 != 0 and year % 400 == 0)
+
+
+def update_data(data_lst:list):
     '''
+    year=0, month=(), day='', week_num=0, week_day=0, day_hours={}, act <- could absence if timer is not stoped yet
     Main update of data in json-file. Function fill json-file with data, that will be used for graphs.
     If data already in the json-file, this function check all values of current day, week, month,
     year and update data if it is need to.
@@ -42,42 +53,49 @@ def update_data(year=0, month=(), day='', week_num=0, week_day=0, day_hours={}):
     the keys of the day_hours dict started from 13. It is because
     i want to give only the part of hours, from the moment when the timer is start
     '''
-    kwargs = [year, month, day, week_num, week_day, day_hours]
-    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test: # path of the json-file will be changed
-        f = json.load(test)
 
+    
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test: # path of the json-file will be changed
+        a = json.load(test)
+        md = a['minutes_data']
+        ad = a['activities_data']
+
+    if len(data_lst) == 7:
+        act = data_lst.pop(-1)
+        ad[act] += 1
+    year, month, day, week_num, week_day, day_hours = data_lst
     # now we checking if our data is equal to data in buffer_zone
     # if it isn't - we must change some values
-    if year != f['buffer_zone']['year']: # if curent year != year in buffer
-        f['year_months']={k:0 for k in monthnames}
+    if year != md['buffer_zone']['year']: # if curent year != year in buffer
+        md['year_months']={k:0 for k in monthnames}
 
-    if month[1] != f['buffer_zone']['cur_month'][1]: # month = (1, 'Jan')
+    if month[1] != md['buffer_zone']['cur_month'][1]: # month = (1, 'Jan')
         if month[0] == 2 and isleap(year): # if month is Feb and year is leap
-            f['month_days'] ={str(k):0 for k in range(1, 30)}
+            md['month_days'] ={str(k):0 for k in range(1, 30)}
         else:
-            f['month_days'] = {str(k):0 for k in range(1, days_of_the_month[month[0]-1]+1)}
+            md['month_days'] = {str(k):0 for k in range(1, days_of_the_month[month[0]-1]+1)}
 
     # we will use date.isocalendar for this, but i don't like this flow
-    if f['buffer_zone']['cur_week'] != week_num: 
-        f['week_days'] = {k:0 for k in daynames}
-    elif  year!=f['buffer_zone']['year']:
-        f['week_days'] = {k:0 for k in daynames}
+    if md['buffer_zone']['cur_week'] != week_num: 
+        md['week_days'] = {k:0 for k in daynames}
+    elif  year!=md['buffer_zone']['year']:
+        md['week_days'] = {k:0 for k in daynames}
 
     # we also change day_hours data if we need it
-    if f['buffer_zone']['cur_day'] != day:
-        f['day_hours'] = {str(k):0 for k in range(24)}
+    if md['buffer_zone']['cur_day'] != day:
+        md['day_hours'] = {str(k):0 for k in range(24)}
 
     # finally we change all data in buffer_zone
-    for k, v in zip(f['buffer_zone'], kwargs):
-        f['buffer_zone'][k] = v
-        print(f['buffer_zone'])
+    for k, v in zip(md['buffer_zone'], data_lst):
+        md['buffer_zone'][k] = v
+        print(md['buffer_zone'])
 
-    update_graph_data(f, kwargs)
+    update_graph_data(md, data_lst)
 
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'w') as test:
-        json.dump(f, test, indent=2)
+        json.dump(a, test, indent=2)
 
-def update_graph_data(data:dict, data_list:list):
+def update_graph_data(data:dict, data_list:tuple):
     """
     Update data for graphs and statistics. It worked when 
     timer stoped or when next hour is comming and we need 
@@ -92,18 +110,21 @@ def update_graph_data(data:dict, data_list:list):
     data['month_days'][month_day] = sum(list(data['day_hours'].values()))
     data['year_months'][month] = sum(list(data['month_days'].values()))
 
+
 def get_data(key_to: str) -> dict:
-    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
-        f = json.load(test)
+    with open(os.path.dirname(os.path.abspath(__file__)) + '\\test.json', 'r') as test:
+        a = json.load(test)
+        f = a['minutes_data']
     data = f[key_to]
     return data
+
 
 try:
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
         pass
 except OSError:
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'w') as test:
-        json.dump(data, test, indent=2)
+        json.dump(main_data, test, indent=4)
 
 
 

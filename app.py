@@ -1,10 +1,11 @@
 import json_keep as jk
+from plot_stat import WorkingBar
 
 import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import numpy as np
 import os.path
-from plot_stat import WorkingBar
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
@@ -34,6 +35,7 @@ class MainApp(tk.Tk):
         self.frames = {}
         self.timer_check = False # well now i need to check timer in mainapp, so i deleted is_timer_on in TimerFrame
         self.timer_task = ''
+        self.act = ''
         self.time = datetime.datetime.now().replace(hour=0, minute=0, second=0) # this time is only used for timer
         self.after_id = None # id for after_cancel
         self.stop_val = 0
@@ -73,7 +75,8 @@ class MainApp(tk.Tk):
 
     def time_check(self):
         '''
-        Here we checking time for our timer'''
+        Here we checking time for our timer and update data for json-file
+        '''
         time = datetime.datetime.now()
         date = datetime.date(time.year, time.month, time.day)
         self.time_hour = time.hour
@@ -86,7 +89,7 @@ class MainApp(tk.Tk):
         if self.another_fucking_flag:
             print('RISE UP FUCKING FLAG I HATE U')
             self.another_fucking_flag = False
-            self.jk_data(year, month, day, week_num, week_day, self.time_counter) # wrong shit,
+            self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act)
             if not self.cur_hour:
                 del self.time_counter[str(self.time_hour)]
             else:
@@ -103,12 +106,13 @@ class MainApp(tk.Tk):
                 self.cur_res_val = self.res_val.seconds
                 self.new_hour_flag = True
 
-    def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict):
+    def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict, act:str):
         print('update data')
-        jk.update_data(
-            year, month, day,
-            week_num, week_day, day_hours
-        )
+        if self.stop_val:
+            data_lst = [year, month, day, week_num, week_day, day_hours]
+        else:
+            data_lst = [year, month, day, week_num, week_day, day_hours, act]
+        jk.update_data(data_lst)
 
     def start_count(self, contr):
         frame = self.frames[contr]
@@ -122,7 +126,7 @@ class MainApp(tk.Tk):
     def change_time(self, frame):
         self.time -= self.delta
         self.res_val = self.fixed_val - self.new_val
-        self.stop_val = self.time.minute+self.time.second
+        self.stop_val = self.time.minute + self.time.second
 
         if not self.new_hour_flag:
             if self.res_val.seconds == 60:
@@ -147,9 +151,11 @@ class MainApp(tk.Tk):
             self.minutes_val = 0
             print('доходит')
 
-    def update_timer(self, time, task, restart=False):
-        """Restart flag is used for checking
-        if we try to restart already working timer"""
+    def update_timer(self, time, task, act, restart=False):
+        """
+        Function that set up time value on main screen.
+        Restart flag is used for checking if we try to restart already working timer
+        """
         frame = self.frames[TimerFrame]
         frame.change_time(time.hour, time.minute, time.second)
         if  restart:
@@ -160,8 +166,13 @@ class MainApp(tk.Tk):
         self.new_val = self.fixed_val - self.delta
         print(self.time)
         self.timer_task = task
+        self.act = act
 
     def logging_time(self, cur_res_val=0):
+        """
+        Add minutes values in attr. If the hour ends distributes 
+        the received minutes to the corresponding hours.
+        """
         print('apparently res_val is 60')
         self.fixed_val = self.new_val
         self.minutes_val += 1
@@ -254,7 +265,8 @@ class TimerFrame(tk.Frame):
 
 class SettingTimerWindow(tk.Toplevel):
     """
-    Creating TopLevel Window for setting the timer
+    Creating TopLevel Window for setting the timer,
+    adding a task and some tags for your timer
     """
     total = 0 # with this value we keep number of new windows at 1
 
@@ -262,7 +274,7 @@ class SettingTimerWindow(tk.Toplevel):
         SettingTimerWindow.total = 1
         tk.Toplevel.__init__(self, parent)
         self.title('Set up Timer')
-        self.geometry('240x130+%d+%d' % parent.set_geometry())
+        self.geometry('260x200+%d+%d' % parent.set_geometry())
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
         # thing above this comment just add new func to close-button [x]
@@ -272,22 +284,84 @@ class SettingTimerWindow(tk.Toplevel):
 
         lbl1 = tk.Label(inner_frame, text='How many time do you want to work?')
         lbl2 = tk.Label(inner_frame, text='What is the point of this timer?')
+        lbl3 = tk.Label(inner_frame, text='Tags')
         self.time_field = tk.Entry(inner_frame, width=20)
         self.task_field = tk.Entry(inner_frame, width=20)
+        self.time_field.insert(0,  "00:00:00")
+
+        lbl1.pack(side='top')
+        self.time_field.pack(side='top')
+
+        lbl2.pack(side='top')
+        self.task_field.pack()
+        lbl3.pack(side='top')
+
+        radio_frame = tk.Frame(inner_frame)
+        radio_frame_2 = tk.Frame(inner_frame)
+        radio_frame.pack()
+        radio_frame_2.pack()
+        
+        self.activities = ['Work', 'Study', 'Chill', 'Sport', 'Games', 'Read', 'Cooking', 'Nothing']
+        self.act_val = tk.IntVar()
+        work = tk.Radiobutton(radio_frame,
+                              text = self.activities[0],
+                              variable=self.act_val,
+                              value = 0)
+
+        study = tk.Radiobutton(radio_frame,
+                              text = self.activities[1],
+                              variable=self.act_val,
+                              value = 1)
+
+        chill = tk.Radiobutton(radio_frame,
+                              text = self.activities[2],
+                              variable=self.act_val,
+                              value = 2)
+
+        sport = tk.Radiobutton(radio_frame,
+                              text = self.activities[3],
+                              variable=self.act_val,
+                              value = 3)
+
+        games = tk.Radiobutton(radio_frame_2,
+                              text = self.activities[4],
+                              variable=self.act_val,
+                              value = 4)
+
+        reading = tk.Radiobutton(radio_frame_2,
+                              text = self.activities[5],
+                              variable=self.act_val,
+                              value = 5)
+
+        cook = tk.Radiobutton(radio_frame_2,
+                              text = self.activities[6],
+                              variable=self.act_val,
+                              value = 6)
+
+        nothing = tk.Radiobutton(radio_frame_2,
+                              text = self.activities[7],
+                              variable=self.act_val,
+                              value = 7)
+
+        for i in (work, study, chill, sport):
+            i.pack(side='left')
+        for i in (games, reading, cook, nothing):
+            i.pack(side='left')
+
         btn1 = ttk.Button(inner_frame,
                           text='To the timer...',
                           command=lambda: self.time_it(parent))
+        btn1.pack(side='top', pady=10)
 
-        lbl1.pack()
-        self.time_field.pack()
-        self.time_field.insert(0,  "00:00:00")
-        lbl2.pack()
-        self.task_field.pack()
-        btn1.pack(pady=10)
         
     def time_it(self, controller):
+        '''
+        It collect all needed data and give it to the MainApp 
+        '''
         time = self.time_field.get()
         task = self.task_field.get()
+        act = self.activities[self.act_val.get()]
+        print(act)
         if not task:
             task = 'Just for fun!'
         try:
@@ -305,9 +379,9 @@ class SettingTimerWindow(tk.Toplevel):
                                         'Do you want to restart timer?',
                                         parent=self):
                     print('Here we restart')
-                    controller.update_timer(time, task, True)
+                    controller.update_timer(time, task, act, True)
             else:
-                controller.update_timer(time, task)
+                controller.update_timer(time, task, act)
             self.close()
 
     def close(self):
@@ -316,6 +390,8 @@ class SettingTimerWindow(tk.Toplevel):
 
 
 class StatisticWindow(tk.Toplevel):
+
+    """Here we will show some graphs and statistics about launches of timer"""
 
     total = 0 # with this value we keep number of new windows at 1
 
@@ -326,29 +402,49 @@ class StatisticWindow(tk.Toplevel):
         self.geometry('500x300+%d+%d' % parent.set_geometry())
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
-
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         inner_frame = tk.Frame(self)
         inner_frame.pack()
+
+        self.combobox = ttk.Combobox(inner_frame,
+                                     values = ['For a day',
+                                                'For a week',
+                                                'For a month',
+                                                'For a year']
+                                    )
+        self.combobox.bind('<<ComboboxSelected>>', self.change_data)
+        self.combobox.current(0)
+        self.combobox.pack(side='top')
 
         self.fig = Figure(figsize=(5,5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.bb = [] # bars-box
         
-        canvas = FigureCanvasTkAgg(self.fig, self)
-        canvas.draw()
+        self.canvas = FigureCanvasTkAgg(self.fig, inner_frame)
+        self.canvas.draw()
 
-        self.create_graph(self.get_data('year_months'))
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.create_graph(self.get_data('day_hours'))
+        self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
     def get_data(self, ds:str):
         data = jk.get_data(ds)
         x, y = list(data.keys()), list(data.values())
         return x, y
-    
 
     def create_graph(self, data:tuple):
         x, y = data
         bars = self.ax.bar(x, y, color='c')
+        if len(x) > 12:
+            if len(x) == 31:
+                arr = np.arange(0, 32, 7)
+                self.ax.set_xticks(arr)
+            elif len(x) == 30:
+                arr = np.arange(1, 32, 6)
+                self.ax.set_xticks(arr)
+            elif len(x) == 24:
+                arr = np.concatenate((np.array([0]), np.arange(0, 19, 6), np.array([23])))
+                self.ax.set_xticks(arr)
         for bar in bars:
             annot = self.ax.annotate('', xy=(-1,-10), xytext=(-20, 23), textcoords='offset points',
                                     bbox=dict(boxstyle='round', fc='w'),
@@ -357,7 +453,16 @@ class StatisticWindow(tk.Toplevel):
             new_bar.connect()
             self.bb.append(new_bar)
 
-        
+    def change_data(self, event):
+        ds = self.combobox.get() #datastring
+        dct = {'For a day':'day_hours',
+               'For a week':'week_days',
+               'For a month':'month_days',
+               'For a year':'year_months'}
+        self.ax.clear()
+        self.create_graph(self.get_data(dct[ds]))
+        self.canvas.draw()
+
     def close(self):
         StatisticWindow.total = 0
         self.destroy()

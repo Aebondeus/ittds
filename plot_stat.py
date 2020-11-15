@@ -1,6 +1,10 @@
 import json_keep as jk
-import matplotlib.pyplot as plt 
-import random
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import numpy as np
+import tkinter as tk
+from tkinter import ttk
+
 
 
 class WorkingBar:
@@ -34,35 +38,17 @@ class WorkingBar:
                 self.bar.set_facecolor('c')
                 self.bar.figure.canvas.draw_idle() # как можно заметить, тут аннотация не видна
 
+class BarPlotStat(tk.Frame):
+    pass
 
+class PiePlotStat(tk.Frame):
+    pass
+   
+class LaunchesTable(tk.Frame):
+    pass
 
-### СНИППЕТ ТУПО ДЛЯ МЕНЯ, ВАЖЕН ТОЛЬКО ВЕРХНИЙ КЛАСС###
-def create_data():
-    data = jk.get_data('week_days')
-    x, y = list(data.keys()), list(data.values())
-    fig, ax = plt.subplots() # создает фигуру и область рисования, раздает их на fig и ax соответственно
-    ax.set_ylim(0, max(y)+20) # устанавливает верхние и нижние границы оси ординат (соответст. ф-ия есть и в для абсцисс)
-    bars = ax.bar(x, y, color='c') # строит бар-гисторграмму, возращает объект BarContainer, содержащий объекты Rectangle
-    bb = [] # одна из самых важных деталей в коде. Сохраняет все экземпляры созданных классов WorkingBar.
-            # Без него любой созданный экземпляр будет стерт сборщиком мусора на следующем цикле
-    for bar in bars: # перебираем BarContainer
-        annot = ax.annotate('', xy=(-1,-1), xytext=(-20, 30),  textcoords='offset points',
-                    bbox=dict(boxstyle='round', fc='w'),
-                    arrowprops=dict(arrowstyle="->"))
-                            # создаем аннотации для каждого из Rectangle,
-                            # xy - положение для аннотации,
-                            # xytext - положение для аннотации тоже. Одно из них передается на стрелку,
-                            # т.е. заменив в данном случае значения xytext можно изменить размеры и наклон стрелки
-                            # textcoords - определяет положение текста по точкам или пикселям оффсета - в душе не знаю, что это
-                            # но без этого текст сносится далеко за пределы графика
-                            # bbox - аргумент, определяющий свойства рамки, в которой находится текст
-                            # boxstyle - форму рамки, fc - окраску фона, если я правильно понимаю (fc - facecolor)
-                            # arrowprops  - аргумент для вырисовки стрелки, arrowstyle - форма стрелки
+# root = tk.Tk()
 
-        new_bar = WorkingBar(bar, annot) # передаем Rectangle и аннотации в экземпляр класса для работы с ними
-        new_bar.connect() # сразу запускаем функцию связывания функции hover класса с событием 
-        bb.append(new_bar) # добавляем экземпляр класса в самый необходимый список
-    plt.show()
-
-if __name__ == '__main__':
-    create_data()
+# app = BarPlotStat(root)
+# app.pack()
+# root.mainloop()
