@@ -2,7 +2,6 @@
 This is the part of app that serialize all data
 from main app in json-format
 """
-
 import json
 import datetime
 import os.path
@@ -25,14 +24,14 @@ data = {
 }
 activities = {
     'Work':0, 'Study':0, 'Chill':0, 'Sport':0,
-    'Games':0, 'Reading':0, 'Cooking':0, 'None of that':0
+    'Games':0, 'Read':0, 'Cooking':0, 'None of that':0
 }
-
+launches = {}
 main_data = {
     'minutes_data':data,
-    'activities_data':activities
+    'activities_data':activities,
+    'launches':launches
 }
-
 
 
 def isleap(year:int):
@@ -41,16 +40,17 @@ def isleap(year:int):
 
 def update_data(data_lst:list):
     '''
-    year=0, month=(), day='', week_num=0, week_day=0, day_hours={}, act <- could absence if timer is not stoped yet
-    Main update of data in json-file. Function fill json-file with data, that will be used for graphs.
+    Main update of data in json-file. Function fill json-file with data, that will be used for graphs and tables.
     If data already in the json-file, this function check all values of current day, week, month,
     year and update data if it is need to.
 
-    Soon i will change all arguments of this function in *args or **kwargs.
+    data in data_list:
+    year=0, month=(), day='', week_num=0, week_day=0, day_hours={}, act='', l_tuple=()
+    act and l_tuple could absence if timer is not stoped yet
+    For example, year=2020, month=(3, 'Mar'), day='3', week_num=11, 
+    day_hours={13:20}. act='Study', l_tuple=('60', '13.00-13.20', 'Learning Math', 'Study')
 
-    For example, year=22, month=(3, 'Mar'), day='3', week_num=11, 
-    day_hours={13:0, 14:50, 16:23, 17:11}. Months - 1-12. In this example
-    the keys of the day_hours dict started from 13. It is because
+    In this example the keys of the day_hours dict started from 13. It is because
     i want to give only the part of hours, from the moment when the timer is start
     '''
 
@@ -59,10 +59,18 @@ def update_data(data_lst:list):
         a = json.load(test)
         md = a['minutes_data']
         ad = a['activities_data']
+        ld = a['launches']
 
-    if len(data_lst) == 7:
+    if len(data_lst) == 8:
+        launch = data_lst.pop(-1) # tuple    
+        date = datetime.date.today().strftime('%d-%b-%Y')
+        if not ld.get(date, None):
+            ld[date] = []
+        ld[date].insert(0, launch)
+
         act = data_lst.pop(-1)
         ad[act] += 1
+
     year, month, day, week_num, week_day, day_hours = data_lst
     # now we checking if our data is equal to data in buffer_zone
     # if it isn't - we must change some values
@@ -123,6 +131,16 @@ def get_pie_data() -> dict:
         a = json.load(test)
         f = a['activities_data']
     return f
+
+def get_lauch_data() -> dict:
+    with open(os.path.dirname(os.path.abspath(__file__)) + '\\test.json', 'r') as test:
+        a = json.load(test)
+        f = a['launches']
+    real_dct = {}
+    for dt in f:
+        date = datetime.datetime.strptime(dt, '%d-%b-%Y')
+        real_dct[date] = f[dt]
+    return real_dct
 
 try:
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:

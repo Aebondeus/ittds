@@ -27,35 +27,36 @@ class MainApp(tk.Tk):
         self.main_frame.rowconfigure(0, weight=1)
         self.main_frame.columnconfigure(0, weight=1)
 
-        # Basically, here i create some attributes for working with external classes
         self.frames = {}
-        self.timer_check = False # well now i need to check timer in mainapp, so i deleted is_timer_on in TimerFrame
-        self.timer_task = ''
-        self.act = ''
+
+        self.time_hour = int()
+        self.time_minute = int()
+        self.time_second = int() # will be deleted
+
         self.time = datetime.datetime.now().replace(hour=0, minute=0, second=0) # this time is only used for timer
         self.after_id = None # id for after_cancel
         self.stop_val = 0
-        # but it wasn't the end. He couldn't stop, oh no, not him. Sick bastard
 
-        # most hated but significant attrs and funcs are coming right now
-        self.time_hour = int()
-        self.time_minute = int()
-        self.time_second = int()
+        self.timer_check = False 
         self.new_hour_flag = False
         self.another_fucking_flag = False
         self.time_counter = {} # dict for collecting time
         self.time_check() # checking current time
+
         self.cur_hour = int() # attr that catch value of running time
         self.cur_res_val = 0 # attr that catch curent value of difference between fixed_val and new_val
         self.minutes_val = 0 # attr that gets minutes, then passing them to the time_counter
         self.fixed_val = None # fixed_value - attr that catch initial value of minutes set
         self.new_val = None # new_value - attr for accumulating elapsed seconds. Accum occurs by subtstracting this value from the fixed_val
         self.res_val = datetime.timedelta() # result_value - attr that accumulate elapsed seconds
-        
 
+        self.start_time = ''
+        self.stop_time = ''
+        self.timer_task = ''
+        self.act = ''
+        self.min_total = ''
 
         for fr in (TopButtonsFrame, TimerButtonFrame, TimerFrame):
-            print(fr)
             frame = fr(self.main_frame, self)
             self.frames[fr] = frame
             frame.pack()
@@ -84,12 +85,15 @@ class MainApp(tk.Tk):
         if self.another_fucking_flag:
             print('RISE UP FUCKING FLAG I HATE U')
             self.another_fucking_flag = False
-            self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act)
-            if not self.cur_hour:
-                del self.time_counter[str(self.time_hour)]
-            else:
-                del self.time_counter[str(self.cur_hour)]
-                self.cur_hour = 0
+            self.l_tuple = (self.min_total, f'{self.start_time}-{self.stop_time}', self.timer_task, self.act)
+            self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act, self.l_tuple)
+            self.time_counter = {}
+            self.min_total = 0
+            # if not self.cur_hour:
+            #     del self.time_counter[str(self.time_hour)]
+            # else:
+            #     del self.time_counter[str(self.cur_hour)]
+            self.cur_hour = 0
             print(self.time_counter)
             
         self.after(1000, self.time_check)
@@ -101,19 +105,20 @@ class MainApp(tk.Tk):
                 self.cur_res_val = self.res_val.seconds
                 self.new_hour_flag = True
 
-    def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict, act:str):
+    def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict, act:str, l_tuple:tuple):
         print('update data')
         if self.stop_val:
             data_lst = [year, month, day, week_num, week_day, day_hours]
         else:
-            data_lst = [year, month, day, week_num, week_day, day_hours, act]
+            data_lst = [year, month, day, week_num, week_day, day_hours, act, l_tuple]
         jk.update_data(data_lst)
 
     def start_count(self, contr):
         frame = self.frames[contr]
-        if self.timer_check:
+        if not self.min_total or self.timer_check:
             return
         self.timer_check = True
+        self.start_time = datetime.datetime.now().strftime('%H:%M') ####
         if not self.time_counter.get(str(self.time_hour), None):
             self.time_counter[str(self.time_hour)] = 0
         self.change_time(frame)
@@ -139,6 +144,7 @@ class MainApp(tk.Tk):
         if not self.stop_val:
             print('we finally here')
             self.after_cancel(self.after_id)
+            self.stop_time = datetime.datetime.now().strftime('%H:%M')
             self.timer_check = False
             self.time_counter[str(self.time_hour)] = self.minutes_val
             print(self.time_counter)
@@ -146,7 +152,7 @@ class MainApp(tk.Tk):
             self.minutes_val = 0
             print('доходит')
 
-    def update_timer(self, time, task, act, restart=False):
+    def update_timer(self, time, task, act, min_total, restart=False):
         """
         Function that set up time value on main screen.
         Restart flag is used for checking if we try to restart already working timer
@@ -156,12 +162,14 @@ class MainApp(tk.Tk):
         if  restart:
             self.after_cancel(self.after_id) # after_cancel get after-function id and stop after
             self.timer_check = False
+            self.time_counter = {}
         self.time = frame.get_time
         self.fixed_val = self.time
         self.new_val = self.fixed_val - self.delta
         print(self.time)
         self.timer_task = task
         self.act = act
+        self.min_total = min_total
 
     def logging_time(self, cur_res_val=0):
         """
@@ -182,13 +190,13 @@ class MainApp(tk.Tk):
                 self.time_counter[str(self.time_hour)] = self.minutes_val
                 self.minutes_val = 0
                 self.new_hour_flag = False
-                self.another_fucking_flag = True
+                # self.another_fucking_flag = True
             elif cur_res_val >= 30:
                 if self.time_hour - self.cur_hour:
                     self.time_counter[str(self.cur_hour)] = self.minutes_val
                     self.minutes_val = 0
                     self.new_hour_flag = False
-                    self.another_fucking_flag = True
+                    # self.another_fucking_flag = True
             print(self.time_counter)
 
 
@@ -356,6 +364,7 @@ class SettingTimerWindow(tk.Toplevel):
         time = self.time_field.get()
         task = self.task_field.get()
         act = self.activities[self.act_val.get()]
+        min_total = int(time[:2]) * 60 + int(time[3:5])
         print(act)
         if not task:
             task = 'Just for fun!'
@@ -369,14 +378,14 @@ class SettingTimerWindow(tk.Toplevel):
             self.time_field.delete(0, 'end')
             self.time_field.insert(0, "00:00:00")
         else:
-            if controller.timer_check:
+            if controller.timer_check: # если таймер запущен
                 if messagebox.askyesno('Restart timer',
                                         'Do you want to restart timer?',
                                         parent=self):
                     print('Here we restart')
-                    controller.update_timer(time, task, act, True)
+                    controller.update_timer(time, task, act, min_total, True) ######
             else:
-                controller.update_timer(time, task, act)
+                controller.update_timer(time, task, act, min_total)  #####
             self.close()
 
     def close(self):

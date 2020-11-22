@@ -6,38 +6,39 @@ import tkinter as tk
 from tkinter import ttk
 
 class WorkingBar:
-    """Class for anomation of the bars in plot"""
+    """Class for animation of the bars in plot"""
     def __init__(self, bar, annot):
         self.bar = bar
         self.annot = annot
 
     def connect(self):
-        self.motion = self.bar.figure.canvas.mpl_connect('motion_notify_event', self.hover) # связывает событие прохода курсора над фигурой с определенной функцией класса
+        self.motion = self.bar.figure.canvas.mpl_connect('motion_notify_event', self.hover) 
 
     def update(self):
-        x, y = (self.bar.get_x(), self.bar.get_height()) # создает определенные значения для аннотации
-        self.annot.xy=(x, y) # передает аннотации новые значения xy, которые она принимает, если отсутствует xytext
-        text = f'{self.bar.get_height()}' # назначение текста для аннотации
-        self.annot.set_text(text) # устанавливает переданный текст
-        self.annot.get_bbox_patch().set_alpha(0.4) # устанавливает прозрачность рамки
-        self.annot.set_visible(True) # делает аннотацию видимой
+        x, y = (self.bar.get_x(), self.bar.get_height()) 
+        self.annot.xy=(x, y) 
+        text = f'{self.bar.get_height()}'
+        self.annot.set_text(text)
+        self.annot.get_bbox_patch().set_alpha(0.4)
+        self.annot.set_visible(True)
         self.bar.set_facecolor('red')
 
     def hover(self, event):
-        vis = self.annot.get_visible() # проверяет видимость аннотации
-        if event.inaxes != self.bar.axes: return # если курсор находится на прямоугольнике - работает дальше, нет - нет
-        cont, _ = self.bar.contains(event) # проверяет то же самое, возвращает булевое значение
+        vis = self.annot.get_visible()
+        if event.inaxes != self.bar.axes: return 
+        cont, _ = self.bar.contains(event)
         if cont:
-            self.update() # запускает update, который получает необходимые значения и выводит аннотацию
-            self.bar.figure.canvas.draw_idle() # что draw, что draw_idle - просто рисуют необходимые значения, в данном случае - с видимой аннотацией
+            self.update()
+            self.bar.figure.canvas.draw_idle()
         else:
             if vis:
                 self.annot.set_visible(False)
                 self.bar.set_facecolor('c')
-                self.bar.figure.canvas.draw_idle() # как можно заметить, тут аннотация не видна
+                self.bar.figure.canvas.draw_idle()
 
 class BarPlotStat(tk.Frame):
-    
+    """The class draws a graph that shows the number of minutes
+    that the user focused on their tasks, per day, week, month, and year"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -48,7 +49,7 @@ class BarPlotStat(tk.Frame):
 
         btn1 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
         btn2 = ttk.Button(btn_frame, text='Table', command = lambda: controller.switch_page(LaunchesTable))
-        btn1.pack(side='left', padx=20)
+        btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
 
         self.combobox = ttk.Combobox(plot_frame,
@@ -63,6 +64,8 @@ class BarPlotStat(tk.Frame):
 
         self.fig = Figure(figsize=(5,4), dpi=100)
         self.ax = self.fig.add_subplot(111)
+        for side in ('top', 'left', 'right'):
+            self.ax.spines[side].set_visible(False)
         self.bb = [] # bars-box
         
         self.canvas = FigureCanvasTkAgg(self.fig, plot_frame)
@@ -98,7 +101,7 @@ class BarPlotStat(tk.Frame):
             self.bb.append(new_bar)
 
     def change_data(self, event):
-        ds = self.combobox.get() #datastring
+        ds = self.combobox.get() #data_string
         dct = {'For a day':'day_hours',
                'For a week':'week_days',
                'For a month':'month_days',
@@ -108,6 +111,7 @@ class BarPlotStat(tk.Frame):
         self.canvas.draw()
 
 class PiePlotStat(tk.Frame):
+    '''The graph shows the percentage of tags selected by the user for any task'''
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
    
@@ -130,7 +134,7 @@ class PiePlotStat(tk.Frame):
         self.canvas.draw()
 
         labels, perc = self.get_data()
-        self.ax.pie(perc, labels=labels, autopct='%1.1f%%', shadow=True)
+        self.ax.pie(perc, labels=labels, autopct='%1.1f%%')
 
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
@@ -154,12 +158,29 @@ class LaunchesTable(tk.Frame):
 
         btn1 = ttk.Button(btn_frame, text='Bar Plot', command = lambda: controller.switch_page(BarPlotStat))
         btn2 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
+
+        hiden_lbl = tk.Label(plot_frame, text='')
+        hiden_lbl.pack(side='top', pady=10)
+
+        cols = ('one','two','three','four')
+        col_names = ('Minutes','Interval', 'Task', 'Tag')
+        cols_width = (60, 70, 200, 70)
+        table = ttk.Treeview(plot_frame, columns=cols, height=19)
+        table.column('#0', width=100)
+        for col, col_name, col_width in zip(cols, col_names, cols_width):
+            table.column(col, width=col_width, anchor=tk.N)
+            table.heading(col, text=col_name)
+        self.get_data(table)
+        table.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
 
-
-# root = tk.Tk()
-
-# app = BarPlotStat(root)
-# app.pack()
-# root.mainloop()
+    def get_data(self, table):
+        working_dct = jk.get_lauch_data()
+        sorted_date = sorted(working_dct, reverse=True)
+        id = 1
+        for date in sorted_date:
+            folder = table.insert('', id, text=date.strftime('%d, %b'))
+            for values in working_dct[date]:
+                table.insert(folder, 'end', values=values)
+            
