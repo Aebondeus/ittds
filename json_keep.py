@@ -24,7 +24,7 @@ data = {
 }
 activities = {
     'Work':0, 'Study':0, 'Chill':0, 'Sport':0,
-    'Games':0, 'Read':0, 'Cooking':0, 'None of that':0
+    'Games':0, 'Read':0, 'Cooking':0, 'Nothing':0
 }
 launches = {}
 main_data = {

@@ -70,8 +70,9 @@ class BarPlotStat(tk.Frame):
         
         self.canvas = FigureCanvasTkAgg(self.fig, plot_frame)
         self.canvas.draw()
-
-        self.create_graph(self.get_data('day_hours'))
+        x, y = self.get_data('day_hours')
+        self.fig.suptitle(f"Today you've been focused {sum(y)} minutes")
+        self.create_graph(x, y)
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
     def get_data(self, ds:str):
@@ -79,7 +80,7 @@ class BarPlotStat(tk.Frame):
         x, y = list(data.keys()), list(data.values())
         return x, y
 
-    def create_graph(self, data:tuple):
+    def create_graph(self, *data):
         x, y = data
         bars = self.ax.bar(x, y, color='c')
         if len(x) > 12:
@@ -93,13 +94,14 @@ class BarPlotStat(tk.Frame):
                 arr = np.concatenate((np.array([0]), np.arange(0, 19, 6), np.array([23])))
                 self.ax.set_xticks(arr)
         for bar in bars:
-            annot = self.ax.annotate('', xy=(-1,-10), xytext=(-20, 23), textcoords='offset points',
+            annot = self.ax.annotate('', xy=(-1,-10), xytext=(-20, 18), textcoords='offset points',
                                     bbox=dict(boxstyle='round', fc='w'),
                                     arrowprops=dict(arrowstyle='->'))
             new_bar = WorkingBar(bar, annot)
             new_bar.connect()
             self.bb.append(new_bar)
 
+# need to animate this function below
     def change_data(self, event):
         ds = self.combobox.get() #data_string
         dct = {'For a day':'day_hours',
@@ -107,8 +109,17 @@ class BarPlotStat(tk.Frame):
                'For a month':'month_days',
                'For a year':'year_months'}
         self.ax.clear()
-        self.create_graph(self.get_data(dct[ds]))
+        date_string = ds.split()[2]
+        x, y = self.get_data(dct[ds])
+        if date_string is not 'day':
+            self.fig.suptitle(f"This {date_string} you've been focused {sum(y)} minutes")
+        else:
+            self.fig.suptitle(f"Today you've been focused {sum(y)} minutes")
+        self.create_graph(x, y)
         self.canvas.draw()
+
+    def animate_graph(self, i):
+        pass
 
 class PiePlotStat(tk.Frame):
     '''The graph shows the percentage of tags selected by the user for any task'''

@@ -162,6 +162,7 @@ class MainApp(tk.Tk):
         if  restart:
             self.after_cancel(self.after_id) # after_cancel get after-function id and stop after
             self.timer_check = False
+            self.minutes_val = 0
             self.time_counter = {}
         self.time = frame.get_time
         self.fixed_val = self.time
@@ -212,7 +213,7 @@ class TopButtonsFrame(tk.Frame):
         btn2 = ttk.Button(self, text='Statistics',
                           command = lambda: self.create_new_window(StatisticWindow, controller))
         btn2.grid(row=0, column=1, sticky='nsew')
-        btn3 = ttk.Button(self, text='Change Tomato')
+        btn3 = ttk.Button(self, text='Settings')
         btn3.grid(row=0, column=2, sticky='nsew')
 
     def create_new_window(self, cls, controller):
