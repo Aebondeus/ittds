@@ -111,7 +111,7 @@ class BarPlotStat(tk.Frame):
         self.ax.clear()
         date_string = ds.split()[2]
         x, y = self.get_data(dct[ds])
-        if date_string is not 'day':
+        if date_string != 'day':
             self.fig.suptitle(f"This {date_string} you've been focused {sum(y)} minutes")
         else:
             self.fig.suptitle(f"Today you've been focused {sum(y)} minutes")
@@ -167,6 +167,8 @@ class LaunchesTable(tk.Frame):
         btn_frame.pack()
         plot_frame.pack()
 
+        self.fold_iid = {}
+
         btn1 = ttk.Button(btn_frame, text='Bar Plot', command = lambda: controller.switch_page(BarPlotStat))
         btn2 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
 
@@ -182,16 +184,36 @@ class LaunchesTable(tk.Frame):
             table.column(col, width=col_width, anchor=tk.N)
             table.heading(col, text=col_name)
         self.get_data(table)
+        self.update_data(table)
         table.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
 
     def get_data(self, table):
-        working_dct = jk.get_lauch_data()
+        working_dct = jk.get_launch_data()
         sorted_date = sorted(working_dct, reverse=True)
         id = 1
         for date in sorted_date:
             folder = table.insert('', id, text=date.strftime('%d, %b'))
+            self.fold_iid[date] = folder
             for values in working_dct[date]:
                 table.insert(folder, 'end', values=values)
             
+    def update_data(self, table):
+        work_dict = jk.get_launch_data()
+        sorted_date = sorted(work_dict, reverse=True)
+        if len(sorted_date) > len(self.fold_iid): # if we have new date in launches
+            self.fold_iid = {} # will be contain datetime:item-id as k:v
+            self.get_data(table)
+        else:
+            for date in sorted_date:
+                items = table.get_children(self.fold_iid[date]) # number of items in folder
+                values = work_dict[date] # number of values in current date
+                if len(values) > len(items):
+                    for item in items:
+                        table.delete(item)
+                    for value in values:
+                        table.insert(self.fold_iid[date], 'end', values=value)
+        self.after(1000, self.update_data, table)
+
+        

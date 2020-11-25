@@ -132,7 +132,7 @@ def get_pie_data() -> dict:
         f = a['activities_data']
     return f
 
-def get_lauch_data() -> dict:
+def get_launch_data() -> dict:
     with open(os.path.dirname(os.path.abspath(__file__)) + '\\test.json', 'r') as test:
         a = json.load(test)
         f = a['launches']
