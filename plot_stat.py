@@ -67,12 +67,9 @@ class BarPlotStat(tk.Frame):
         for side in ('top', 'left', 'right'):
             self.ax.spines[side].set_visible(False)
         self.bb = [] # bars-box
-        
         self.canvas = FigureCanvasTkAgg(self.fig, plot_frame)
         self.canvas.draw()
-        x, y = self.get_data('day_hours')
-        self.fig.suptitle(f"Today you've been focused {sum(y)} minutes")
-        self.create_graph(x, y)
+        self.change_data('For a day')
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
     def get_data(self, ds:str):
@@ -101,16 +98,15 @@ class BarPlotStat(tk.Frame):
             new_bar.connect()
             self.bb.append(new_bar)
 
-# need to animate this function below
     def change_data(self, event):
         ds = self.combobox.get() #data_string
         dct = {'For a day':'day_hours',
                'For a week':'week_days',
                'For a month':'month_days',
                'For a year':'year_months'}
-        self.ax.clear()
         date_string = ds.split()[2]
         x, y = self.get_data(dct[ds])
+        self.ax.clear()
         if date_string != 'day':
             self.fig.suptitle(f"This {date_string} you've been focused {sum(y)} minutes")
         else:
@@ -118,8 +114,6 @@ class BarPlotStat(tk.Frame):
         self.create_graph(x, y)
         self.canvas.draw()
 
-    def animate_graph(self, i):
-        pass
 
 class PiePlotStat(tk.Frame):
     '''The graph shows the percentage of tags selected by the user for any task'''
@@ -143,10 +137,9 @@ class PiePlotStat(tk.Frame):
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, plot_frame)
         self.canvas.draw()
-
         labels, perc = self.get_data()
         self.ax.pie(perc, labels=labels, autopct='%1.1f%%')
-
+        self.fig.suptitle('Distribution by tags', size=20, weight=5)
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
     def get_data(self):
@@ -157,6 +150,7 @@ class PiePlotStat(tk.Frame):
                 lab.append(i)
                 perc.append((data[i]/sum(list(data.values())) * 100))
         return lab, perc
+
 
 class LaunchesTable(tk.Frame):
     def __init__(self, parent, controller):
@@ -172,19 +166,23 @@ class LaunchesTable(tk.Frame):
         btn1 = ttk.Button(btn_frame, text='Bar Plot', command = lambda: controller.switch_page(BarPlotStat))
         btn2 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
 
-        hiden_lbl = tk.Label(plot_frame, text='')
+        hiden_lbl = tk.Label(plot_frame, text='History of your launches', font=('Camria', 16))
         hiden_lbl.pack(side='top', pady=10)
 
         cols = ('one','two','three','four')
         col_names = ('Minutes','Interval', 'Task', 'Tag')
         cols_width = (60, 70, 200, 70)
-        table = ttk.Treeview(plot_frame, columns=cols, height=19)
-        table.column('#0', width=100)
+        table = ttk.Treeview(plot_frame, columns=cols, height=18)
+        scrollbar = ttk.Scrollbar(plot_frame, orient='vertical', command=table.yview)
+        scrollbar.pack(side='right', fill='y')
+        table.configure(yscrollcommand=scrollbar.set)
+        table.column('#0', width=80)
         for col, col_name, col_width in zip(cols, col_names, cols_width):
             table.column(col, width=col_width, anchor=tk.N)
             table.heading(col, text=col_name)
         self.get_data(table)
         self.update_data(table)
+        
         table.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
@@ -195,6 +193,7 @@ class LaunchesTable(tk.Frame):
         id = 1
         for date in sorted_date:
             folder = table.insert('', id, text=date.strftime('%d, %b'))
+            id += 1
             self.fold_iid[date] = folder
             for values in working_dct[date]:
                 table.insert(folder, 'end', values=values)
@@ -215,5 +214,3 @@ class LaunchesTable(tk.Frame):
                     for value in values:
                         table.insert(self.fold_iid[date], 'end', values=value)
         self.after(1000, self.update_data, table)
-
-        

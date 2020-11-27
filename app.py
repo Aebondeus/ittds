@@ -213,7 +213,8 @@ class TopButtonsFrame(tk.Frame):
         btn2 = ttk.Button(self, text='Statistics',
                           command = lambda: self.create_new_window(StatisticWindow, controller))
         btn2.grid(row=0, column=1, sticky='nsew')
-        btn3 = ttk.Button(self, text='Settings')
+        btn3 = ttk.Button(self, text='Settings',
+                          command = lambda: self.create_new_window(SettingsWindow, controller))
         btn3.grid(row=0, column=2, sticky='nsew')
 
     def create_new_window(self, cls, controller):
@@ -426,6 +427,23 @@ class StatisticWindow(tk.Toplevel):
 
     def close(self):
         StatisticWindow.total = 0
+        self.destroy()
+
+class SettingsWindow(tk.Toplevel):
+    total = 0
+    def __init__(self, parent):
+        SettingsWindow.total += 1
+        tk.Toplevel.__init__(self)
+        self.title('Settings')
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
+
+        container = tk.Frame(self)
+        container.pack()
+
+
+    def close(self):
+        SettingsWindow.total = 0
         self.destroy()
 
 app = MainApp()
