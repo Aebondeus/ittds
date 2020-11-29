@@ -202,6 +202,9 @@ class LaunchesTable(tk.Frame):
         work_dict = jk.get_launch_data()
         sorted_date = sorted(work_dict, reverse=True)
         if len(sorted_date) > len(self.fold_iid): # if we have new date in launches
+            items = table.get_children()
+            for item in items:
+                table.delete(item)
             self.fold_iid = {} # will be contain datetime:item-id as k:v
             self.get_data(table)
         else:

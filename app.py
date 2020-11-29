@@ -3,11 +3,16 @@ from plot_stat import WorkingBar, BarPlotStat, PiePlotStat, LaunchesTable
 import datetime
 import os.path
 import tkinter as tk
+from tkinter import filedialog as fd
 from tkinter import messagebox
 from tkinter import ttk
+import PIL
 from PIL import Image, ImageTk
+import winsound
 
 FONT_FOR_TIMER = ('Times New Roman', 20)
+TIMER_BUTTON = jk.get_pic()
+STOP_SOUND = jk.get_sound()
 
 class MainApp(tk.Tk):
     
@@ -68,6 +73,15 @@ class MainApp(tk.Tk):
         h = h//2 - 200
         return w, h
 
+    def set_new_pic(self, frame):
+        frame = self.frames[frame]
+        print(frame)
+        TIMER_BUTTON = jk.get_pic()
+        print(TIMER_BUTTON)
+        frame.set_lbl()
+
+    def set_new_sound(self):
+        STOP_SOUND = jk.get_sound()
 
     def time_check(self):
         '''
@@ -89,10 +103,6 @@ class MainApp(tk.Tk):
             self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act, self.l_tuple)
             self.time_counter = {}
             self.min_total = 0
-            # if not self.cur_hour:
-            #     del self.time_counter[str(self.time_hour)]
-            # else:
-            #     del self.time_counter[str(self.cur_hour)]
             self.cur_hour = 0
             print(self.time_counter)
             
@@ -151,6 +161,7 @@ class MainApp(tk.Tk):
             self.another_fucking_flag = True
             self.minutes_val = 0
             print('доходит')
+            winsound.PlaySound(STOP_SOUND, winsound.SND_NOSTOP)
 
     def update_timer(self, time, task, act, min_total, restart=False):
         """
@@ -231,19 +242,21 @@ class TimerButtonFrame(tk.Frame):
     
     def __init__(self, parent, controller): 
         tk.Frame.__init__(self, parent)
+        self.lbl = None 
+        self.set_lbl()
+        # # here i bind label with function
+        self.lbl.bind('<Button-1>', lambda event: controller.start_count(TimerFrame))
+        # # lambda just to remind me that this type of work is great too
+        self.lbl.pack(pady=30)
 
+    def set_lbl(self):
         # in this step i made Label with picture
         # this how it is work with PIL, in four steps
-        data = Image.open(os.path.dirname(os.path.abspath(__file__)) + '\\pics\\tomato.png') # 1
+        data = Image.open(TIMER_BUTTON).resize((128, 128)) # 1
         photo = ImageTk.PhotoImage(data) # 2
         lbl = tk.Label(self, image=photo) # 3
         lbl.image = photo # 4
-
-        # here i bind label with function
-        lbl.bind('<Button-1>', lambda event: controller.start_count(TimerFrame))
-        # lambda just to remind me that this type of work is great too
-        lbl.pack(pady=30)
-
+        self.lbl = lbl
 
 class TimerFrame(tk.Frame):
     """
@@ -435,12 +448,72 @@ class SettingsWindow(tk.Toplevel):
         SettingsWindow.total += 1
         tk.Toplevel.__init__(self)
         self.title('Settings')
+        self.geometry('250x200')
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
 
-        container = tk.Frame(self)
-        container.pack()
+        self.sound = ''
+        self.pic = ''
+        self.par = parent
 
+        container = tk.Frame(self)
+        sub_container = tk.Frame(self)
+        container.pack()
+        sub_container.pack()
+
+        pic_container = ttk.Frame(container, borderwidth=4, relief='groove')
+        btn_container = ttk.Frame(container)
+        smt_container = ttk.Frame(sub_container)
+        pic_container.pack(side='left', pady=10, padx=3)
+        btn_container.pack(side='left')
+        smt_container.pack(side='top')
+
+        self.pic_lbl = tk.Label(pic_container, text='\t\t\n\t\t\n\t\t\n\t\t\n\t\t\n')
+        btn1 = ttk.Button(btn_container, text='Change tomato', command = self.change_tomato)
+        btn2 = ttk.Button(btn_container, text='Change sound', command = self.change_sound)
+        self.smt_btn = ttk.Button(smt_container, text='Submit', command= self.submit)
+
+        self.pic_lbl.pack(fill='both', expand=True)
+        btn1.pack(fill='both', expand=True)
+        btn2.pack(fill='both', expand=True)
+        self.smt_btn.pack()
+
+# i'll try to do something with gif-files
+
+    def change_tomato(self):
+        pic = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\pics')
+        try:
+            data = Image.open(pic)
+            data = data.resize((128,128))
+            photo = ImageTk.PhotoImage(data)
+            self.pic_lbl['image']= photo     
+            self.pic_lbl.image = photo
+            self.pic = pic
+        except PIL.UnidentifiedImageError:
+            messagebox.showerror(title='Not an Image!', message='This file is not an image!')
+        except AttributeError:
+            pass
+
+    def change_sound(self):
+        sound = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\sounds')
+        fmt = sound.split('.')[1]
+        if fmt == 'wav':
+            winsound.PlaySound(sound, winsound.SND_NOSTOP)
+            self.sound = sound
+        else:
+            messagebox.showinfo('Wrong sound-format!', message='File must be in WAV-format!')
+
+    def submit(self):
+        if self.sound or self.pic:
+            if self.sound:
+                jk.change_sound(self.sound)
+                self.par.set_new_sound()
+            if self.pic:
+                jk.change_pic(self.pic)
+                self.par.set_new_pic(TimerButtonFrame)
+            self.close()
+        else:
+            messagebox.showwarning(title='Nothing is selected', message="You didn't choose anything")
 
     def close(self):
         SettingsWindow.total = 0

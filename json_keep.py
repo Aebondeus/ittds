@@ -1,6 +1,7 @@
 """
 This is the part of app that serialize all data
-from main app in json-format
+from main app in json-format. 
+And when i said all - i mean really all
 """
 import json
 import datetime
@@ -30,9 +31,38 @@ launches = {}
 main_data = {
     'minutes_data':data,
     'activities_data':activities,
-    'launches':launches
+    'launches':launches,
+    'button_pic':'',
+    'stop_sound':''
 }
 
+def get_pic() -> str:
+    """Return the link to the picture"""
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
+        test = json.load(test)
+    pic = test['button_pic']
+    return pic
+
+def change_pic(link_to:str):
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
+        f = json.load(test)
+    f['button_pic'] = link_to
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'w') as test:
+        json.dump(f, test, indent=2)
+
+def get_sound() -> str:
+    """Return the link to the sound"""
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
+        test = json.load(test)
+    sound = test['stop_sound']
+    return sound
+
+def change_sound(link_to:str):
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'r') as test:
+        f = json.load(test)
+    f['stop_sound'] = link_to
+    with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'w') as test:
+        json.dump(f, test, indent=2)
 
 def isleap(year:int):
     return year % 4 == 0 and (year % 100 != 0 and year % 400 == 0)
