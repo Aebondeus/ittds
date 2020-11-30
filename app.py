@@ -75,10 +75,8 @@ class MainApp(tk.Tk):
 
     def set_new_pic(self, frame):
         frame = self.frames[frame]
-        print(frame)
         TIMER_BUTTON = jk.get_pic()
-        print(TIMER_BUTTON)
-        frame.set_lbl()
+        frame.set_lbl(TIMER_BUTTON)
 
     def set_new_sound(self):
         STOP_SOUND = jk.get_sound()
@@ -128,7 +126,7 @@ class MainApp(tk.Tk):
         if not self.min_total or self.timer_check:
             return
         self.timer_check = True
-        self.start_time = datetime.datetime.now().strftime('%H:%M') ####
+        self.start_time = datetime.datetime.now().strftime('%H:%M')
         if not self.time_counter.get(str(self.time_hour), None):
             self.time_counter[str(self.time_hour)] = 0
         self.change_time(frame)
@@ -202,13 +200,11 @@ class MainApp(tk.Tk):
                 self.time_counter[str(self.time_hour)] = self.minutes_val
                 self.minutes_val = 0
                 self.new_hour_flag = False
-                # self.another_fucking_flag = True
             elif cur_res_val >= 30:
                 if self.time_hour - self.cur_hour:
                     self.time_counter[str(self.cur_hour)] = self.minutes_val
                     self.minutes_val = 0
                     self.new_hour_flag = False
-                    # self.another_fucking_flag = True
             print(self.time_counter)
 
 
@@ -243,20 +239,23 @@ class TimerButtonFrame(tk.Frame):
     def __init__(self, parent, controller): 
         tk.Frame.__init__(self, parent)
         self.lbl = None 
-        self.set_lbl()
+        self.set_lbl(TIMER_BUTTON)
         # # here i bind label with function
         self.lbl.bind('<Button-1>', lambda event: controller.start_count(TimerFrame))
         # # lambda just to remind me that this type of work is great too
         self.lbl.pack(pady=30)
 
-    def set_lbl(self):
+    def set_lbl(self, pic_link):
         # in this step i made Label with picture
         # this how it is work with PIL, in four steps
-        data = Image.open(TIMER_BUTTON).resize((128, 128)) # 1
+        data = Image.open(pic_link).resize((128, 128)) # 1
         photo = ImageTk.PhotoImage(data) # 2
-        lbl = tk.Label(self, image=photo) # 3
-        lbl.image = photo # 4
-        self.lbl = lbl
+        if self.lbl:
+            self.lbl.configure(image=photo)
+            self.lbl.image = photo
+        else:
+            self.lbl = tk.Label(self, image=photo) # 3
+            self.lbl.image = photo # 4
 
 class TimerFrame(tk.Frame):
     """
@@ -452,8 +451,8 @@ class SettingsWindow(tk.Toplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
 
-        self.sound = ''
-        self.pic = ''
+        self.sound = None
+        self.pic = None
         self.par = parent
 
         container = tk.Frame(self)
@@ -496,12 +495,15 @@ class SettingsWindow(tk.Toplevel):
 
     def change_sound(self):
         sound = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\sounds')
-        fmt = sound.split('.')[1]
-        if fmt == 'wav':
-            winsound.PlaySound(sound, winsound.SND_NOSTOP)
-            self.sound = sound
-        else:
-            messagebox.showinfo('Wrong sound-format!', message='File must be in WAV-format!')
+        try:
+            fmt = sound.split('.')[1]
+            if fmt == 'wav':
+                winsound.PlaySound(sound, winsound.SND_NOSTOP)
+                self.sound = sound
+            else:
+                messagebox.showinfo('Wrong sound-format!', message='File must be in WAV-format!')
+        except IndexError:
+            pass
 
     def submit(self):
         if self.sound or self.pic:
