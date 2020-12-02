@@ -2,12 +2,12 @@ import json_keep as jk
 from plot_stat import WorkingBar, BarPlotStat, PiePlotStat, LaunchesTable
 import datetime
 import os.path
-import tkinter as tk
-from tkinter import filedialog as fd
-from tkinter import messagebox
-from tkinter import ttk
 import PIL
 from PIL import Image, ImageTk
+from tkinter import filedialog as fd
+from tkinter import messagebox
+import tkinter as tk
+from tkinter import ttk
 import winsound
 
 FONT_FOR_TIMER = ('Times New Roman', 20)
@@ -23,7 +23,7 @@ class MainApp(tk.Tk):
         self.title('Pomodorro Timer')
         self.geometry('300x300+%d+%d' % self.set_geometry())
         self.resizable(False, False)
-        self.iconbitmap(os.path.dirname(os.path.abspath(__file__))+'\\pics\\tomato-icon.ico')
+        self.iconbitmap(os.path.dirname(os.path.abspath(__file__))+'\\icons\\tomato.ico')
         self.delta = datetime.timedelta(seconds=1.0)
 
         self.main_frame = tk.Frame(self)
@@ -36,15 +36,15 @@ class MainApp(tk.Tk):
 
         self.time_hour = int()
         self.time_minute = int()
-        self.time_second = int() # will be deleted
+        self.time_second = int()
 
-        self.time = datetime.datetime.now().replace(hour=0, minute=0, second=0) # this time is only used for timer
+        self.timer_time = datetime.datetime.now().replace(hour=0, minute=0, second=0) # this time is only used for timer
         self.after_id = None # id for after_cancel
         self.stop_val = 0
 
         self.timer_check = False 
         self.new_hour_flag = False
-        self.another_fucking_flag = False
+        self.end_timer_flag = False
         self.time_counter = {} # dict for collecting time
         self.time_check() # checking current time
 
@@ -59,7 +59,7 @@ class MainApp(tk.Tk):
         self.stop_time = ''
         self.timer_task = ''
         self.act = ''
-        self.min_total = ''
+        self.min_total = 0
 
         for fr in (TopButtonsFrame, TimerButtonFrame, TimerFrame):
             frame = fr(self.main_frame, self)
@@ -92,11 +92,11 @@ class MainApp(tk.Tk):
         self.time_second = time.second
         if not self.new_hour_flag:
             self.new_hour_check()
-        year, month, day = time.year, (time.month, time.strftime('%b')) , str(time.day)
-        week_num, week_day = date.isocalendar()[1:]
-        if self.another_fucking_flag:
+        if self.end_timer_flag:
             print('RISE UP FUCKING FLAG I HATE U')
-            self.another_fucking_flag = False
+            self.end_timer_flag = False
+            year, month, day = time.year, (time.month, time.strftime('%b')) , str(time.day)
+            week_num, week_day = date.isocalendar()[1:]
             self.l_tuple = (self.min_total, f'{self.start_time}-{self.stop_time}', self.timer_task, self.act)
             self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act, self.l_tuple)
             self.time_counter = {}
@@ -115,10 +115,7 @@ class MainApp(tk.Tk):
 
     def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict, act:str, l_tuple:tuple):
         print('update data')
-        if self.stop_val:
-            data_lst = [year, month, day, week_num, week_day, day_hours]
-        else:
-            data_lst = [year, month, day, week_num, week_day, day_hours, act, l_tuple]
+        data_lst = [year, month, day, week_num, week_day, day_hours, act, l_tuple]
         jk.update_data(data_lst)
 
     def start_count(self, contr):
@@ -132,21 +129,19 @@ class MainApp(tk.Tk):
         self.change_time(frame)
 
     def change_time(self, frame):
-        self.time -= self.delta
+        self.timer_time -= self.delta
         self.res_val = self.fixed_val - self.new_val
-        self.stop_val = self.time.minute + self.time.second
+        self.stop_val = self.timer_time.minute + self.timer_time.second
 
-        if not self.new_hour_flag:
-            if self.res_val.seconds == 60:
+        if self.res_val.seconds == 60:
+            if not self.new_hour_flag:
                 self.logging_time()
-
-        elif self.new_hour_flag:
-            if self.res_val.seconds == 60:
+            else:
                 self.logging_time(cur_res_val = self.cur_res_val)
 
         self.new_val -= datetime.timedelta(seconds=1)
 
-        frame.change_time(self.time.hour, self.time.minute, self.time.second)
+        frame.change_time(self.timer_time.hour, self.timer_time.minute, self.timer_time.second)
         self.after_id = self.after(1000, func=lambda: self.change_time(frame))
 
         if not self.stop_val:
@@ -156,7 +151,7 @@ class MainApp(tk.Tk):
             self.timer_check = False
             self.time_counter[str(self.time_hour)] = self.minutes_val
             print(self.time_counter)
-            self.another_fucking_flag = True
+            self.end_timer_flag = True
             self.minutes_val = 0
             print('доходит')
             winsound.PlaySound(STOP_SOUND, winsound.SND_NOSTOP)
@@ -173,10 +168,10 @@ class MainApp(tk.Tk):
             self.timer_check = False
             self.minutes_val = 0
             self.time_counter = {}
-        self.time = frame.get_time
-        self.fixed_val = self.time
+        self.timer_time = frame.get_time
+        self.fixed_val = self.timer_time
         self.new_val = self.fixed_val - self.delta
-        print(self.time)
+        print(self.timer_time)
         self.timer_task = task
         self.act = act
         self.min_total = min_total
@@ -417,6 +412,7 @@ class StatisticWindow(tk.Toplevel):
         StatisticWindow.total = 1
         tk.Toplevel.__init__(self, parent)
         self.title('Stats and Graphs')
+        self.iconbitmap(os.path.dirname(os.path.abspath(__file__))+'\\icons\\stat.ico')
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
         self.grid_rowconfigure(0, weight=1)
@@ -448,6 +444,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Toplevel.__init__(self)
         self.title('Settings')
         self.geometry('250x200')
+        self.iconbitmap(os.path.dirname(os.path.abspath(__file__))+'\\icons\\settings.ico')
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())
 
@@ -467,26 +464,37 @@ class SettingsWindow(tk.Toplevel):
         btn_container.pack(side='left')
         smt_container.pack(side='top')
 
-        self.pic_lbl = tk.Label(pic_container, text='\t\t\n\t\t\n\t\t\n\t\t\n\t\t\n')
+
+# i'll try to do something with gif-files
+
+        self.pic_lbl = tk.Label(pic_container)
+        self.set_picture(TIMER_BUTTON)
+
         btn1 = ttk.Button(btn_container, text='Change tomato', command = self.change_tomato)
         btn2 = ttk.Button(btn_container, text='Change sound', command = self.change_sound)
+        self.hidden_var = tk.StringVar()
+        self.hidden_var.set(value='')
+        self.hidden_label = tk.Label(btn_container, textvariable=self.hidden_var)
         self.smt_btn = ttk.Button(smt_container, text='Submit', command= self.submit)
 
         self.pic_lbl.pack(fill='both', expand=True)
         btn1.pack(fill='both', expand=True)
         btn2.pack(fill='both', expand=True)
+        self.hidden_label.pack(fill='both', expand=True)
         self.smt_btn.pack()
 
-# i'll try to do something with gif-files
+    def set_picture(self, link):
+        data = Image.open(link).resize((128,128))
+        data = ImageTk.PhotoImage(data)
+        self.pic_lbl.configure(image=data)
+        self.pic_lbl.image = data
 
     def change_tomato(self):
+        print(self.pic)
         pic = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\pics')
+        print(pic)
         try:
-            data = Image.open(pic)
-            data = data.resize((128,128))
-            photo = ImageTk.PhotoImage(data)
-            self.pic_lbl['image']= photo     
-            self.pic_lbl.image = photo
+            self.set_picture(pic)
             self.pic = pic
         except PIL.UnidentifiedImageError:
             messagebox.showerror(title='Not an Image!', message='This file is not an image!')
@@ -497,9 +505,13 @@ class SettingsWindow(tk.Toplevel):
         sound = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\sounds')
         try:
             fmt = sound.split('.')[1]
+            name = sound.split('/')[-1]
             if fmt == 'wav':
+                self.hidden_var.set(value=name)
+                print(self.hidden_label['text'])
                 winsound.PlaySound(sound, winsound.SND_NOSTOP)
                 self.sound = sound
+                print(self.hidden_label['text'])
             else:
                 messagebox.showinfo('Wrong sound-format!', message='File must be in WAV-format!')
         except IndexError:

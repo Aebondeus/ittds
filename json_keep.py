@@ -1,7 +1,6 @@
 """
 This is the part of app that serialize all data
 from main app in json-format. 
-And when i said all - i mean really all
 """
 import json
 import datetime
@@ -32,8 +31,8 @@ main_data = {
     'minutes_data':data,
     'activities_data':activities,
     'launches':launches,
-    'button_pic':'',
-    'stop_sound':''
+    'button_pic':f'{os.path.dirname(os.path.abspath(__file__))}\\pics\\tomato.png',
+    'stop_sound':f'{os.path.dirname(os.path.abspath(__file__))}\\sounds\\fuck-you.wav'
 }
 
 def get_pic() -> str:
