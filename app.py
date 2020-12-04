@@ -11,13 +11,10 @@ from tkinter import ttk
 import winsound
 
 FONT_FOR_TIMER = ('Times New Roman', 20)
-TIMER_BUTTON = jk.get_pic()
-STOP_SOUND = jk.get_sound()
 
 class MainApp(tk.Tk):
-    
-    """Root part of the app. It is create all main things and contain some logic
-       for other classes. But i think that this is bad for OOP, so :("""
+    """Root part of the app. It is create all main things
+       and contain some logic for other classes."""
     def __init__(self):
         tk.Tk.__init__(self)
         self.title('Pomodorro Timer')
@@ -32,13 +29,16 @@ class MainApp(tk.Tk):
         self.main_frame.rowconfigure(0, weight=1)
         self.main_frame.columnconfigure(0, weight=1)
 
+        self.timer_button = jk.get_pic()
+        self.stop_sound = jk.get_sound()
+
         self.frames = {}
 
         self.time_hour = int()
         self.time_minute = int()
         self.time_second = int()
 
-        self.timer_time = datetime.datetime.now().replace(hour=0, minute=0, second=0) # this time is only used for timer
+        self.timer_time = datetime.datetime.now().replace(hour=0, minute=0, second=0)
         self.after_id = None # id for after_cancel
         self.stop_val = 0
 
@@ -73,13 +73,17 @@ class MainApp(tk.Tk):
         h = h//2 - 200
         return w, h
 
+    @property
+    def get_cur_pic(self):
+        return self.timer_button
+
     def set_new_pic(self, frame):
         frame = self.frames[frame]
-        TIMER_BUTTON = jk.get_pic()
-        frame.set_lbl(TIMER_BUTTON)
+        self.timer_button = timer_button = jk.get_pic()
+        frame.set_lbl(timer_button)
 
     def set_new_sound(self):
-        STOP_SOUND = jk.get_sound()
+        self.stop_sound = jk.get_sound()
 
     def time_check(self):
         '''
@@ -90,19 +94,20 @@ class MainApp(tk.Tk):
         self.time_hour = time.hour
         self.time_minute = time.minute
         self.time_second = time.second
+
         if not self.new_hour_flag:
             self.new_hour_check()
         if self.end_timer_flag:
-            print('RISE UP FUCKING FLAG I HATE U')
             self.end_timer_flag = False
+
             year, month, day = time.year, (time.month, time.strftime('%b')) , str(time.day)
             week_num, week_day = date.isocalendar()[1:]
             self.l_tuple = (self.min_total, f'{self.start_time}-{self.stop_time}', self.timer_task, self.act)
+
             self.jk_data(year, month, day, week_num, week_day, self.time_counter, self.act, self.l_tuple)
             self.time_counter = {}
             self.min_total = 0
             self.cur_hour = 0
-            print(self.time_counter)
             
         self.after(1000, self.time_check)
 
@@ -114,12 +119,12 @@ class MainApp(tk.Tk):
                 self.new_hour_flag = True
 
     def jk_data(self, year:int, month:tuple, day:str, week_num:int, week_day:int, day_hours:dict, act:str, l_tuple:tuple):
-        print('update data')
         data_lst = [year, month, day, week_num, week_day, day_hours, act, l_tuple]
         jk.update_data(data_lst)
 
     def start_count(self, contr):
         frame = self.frames[contr]
+
         if not self.min_total or self.timer_check:
             return
         self.timer_check = True
@@ -139,22 +144,19 @@ class MainApp(tk.Tk):
             else:
                 self.logging_time(cur_res_val = self.cur_res_val)
 
-        self.new_val -= datetime.timedelta(seconds=1)
+        self.new_val -= self.delta
 
         frame.change_time(self.timer_time.hour, self.timer_time.minute, self.timer_time.second)
         self.after_id = self.after(1000, func=lambda: self.change_time(frame))
 
         if not self.stop_val:
-            print('we finally here')
             self.after_cancel(self.after_id)
             self.stop_time = datetime.datetime.now().strftime('%H:%M')
             self.timer_check = False
             self.time_counter[str(self.time_hour)] = self.minutes_val
-            print(self.time_counter)
             self.end_timer_flag = True
             self.minutes_val = 0
-            print('доходит')
-            winsound.PlaySound(STOP_SOUND, winsound.SND_NOSTOP)
+            winsound.PlaySound(self.stop_sound, winsound.SND_ASYNC)
 
     def update_timer(self, time, task, act, min_total, restart=False):
         """
@@ -163,6 +165,7 @@ class MainApp(tk.Tk):
         """
         frame = self.frames[TimerFrame]
         frame.change_time(time.hour, time.minute, time.second)
+
         if  restart:
             self.after_cancel(self.after_id) # after_cancel get after-function id and stop after
             self.timer_check = False
@@ -171,7 +174,6 @@ class MainApp(tk.Tk):
         self.timer_time = frame.get_time
         self.fixed_val = self.timer_time
         self.new_val = self.fixed_val - self.delta
-        print(self.timer_time)
         self.timer_task = task
         self.act = act
         self.min_total = min_total
@@ -181,16 +183,13 @@ class MainApp(tk.Tk):
         Add minutes values in attr. If the hour ends distributes 
         the received minutes to the corresponding hours.
         """
-        print('apparently res_val is 60')
         self.fixed_val = self.new_val
         self.minutes_val += 1
-        print(f'Now fixed-val = {self.fixed_val}, minutes-val = {self.minutes_val}')
         if cur_res_val:
             if self.cur_hour == 23:
                 self.time_counter[str(0)] = 0
             else:
                 self.time_counter[str(self.cur_hour+1)] = 0
-            print(f'cur_res_val is equal {cur_res_val}')
             if cur_res_val < 30:
                 self.time_counter[str(self.time_hour)] = self.minutes_val
                 self.minutes_val = 0
@@ -202,11 +201,8 @@ class MainApp(tk.Tk):
                     self.new_hour_flag = False
             print(self.time_counter)
 
-
-
 class TopButtonsFrame(tk.Frame):
     """Frame that contain 3 buttons, that call some TopLevel-windows"""
-    # i will create more functions to these buttons later 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         btn1 = ttk.Button(self, text='Set up Timer',
@@ -220,7 +216,6 @@ class TopButtonsFrame(tk.Frame):
         btn3.grid(row=0, column=2, sticky='nsew')
 
     def create_new_window(self, cls, controller):
-        print(cls.total)
         if cls.total:
             return
         new_window = cls(controller)
@@ -230,36 +225,29 @@ class TopButtonsFrame(tk.Frame):
 
 class TimerButtonFrame(tk.Frame):
     """Frame for start the timer by pushing big juicy button"""
-    
     def __init__(self, parent, controller): 
         tk.Frame.__init__(self, parent)
         self.lbl = None 
-        self.set_lbl(TIMER_BUTTON)
-        # # here i bind label with function
+        self.set_lbl(controller.get_cur_pic)
         self.lbl.bind('<Button-1>', lambda event: controller.start_count(TimerFrame))
-        # # lambda just to remind me that this type of work is great too
         self.lbl.pack(pady=30)
 
     def set_lbl(self, pic_link):
-        # in this step i made Label with picture
-        # this how it is work with PIL, in four steps
-        data = Image.open(pic_link).resize((128, 128)) # 1
-        photo = ImageTk.PhotoImage(data) # 2
+        data = Image.open(pic_link).resize((128, 128))
+        photo = ImageTk.PhotoImage(data)
         if self.lbl:
             self.lbl.configure(image=photo)
             self.lbl.image = photo
         else:
-            self.lbl = tk.Label(self, image=photo) # 3
-            self.lbl.image = photo # 4
+            self.lbl = tk.Label(self, image=photo)
+            self.lbl.image = photo
 
 class TimerFrame(tk.Frame):
     """
     Frame for illustrating of the timer """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        # buffer time is just a useful attribute for getting datetime-value
-        # there is no need to type something like (datetime.datetime(year=2020, month=12 etc))
-        # just use .now and .replace it attributes
+
         self.buffer_time = datetime.datetime.now().replace(hour=0, minute=0, second=0)
         self.timer_var = tk.StringVar()
         self.timer_var.set(self.buffer_time.strftime("%H:%M:%S"))
@@ -280,7 +268,7 @@ class SettingTimerWindow(tk.Toplevel):
     Creating TopLevel Window for setting the timer,
     adding a task and some tags for your timer
     """
-    total = 0 # with this value we keep number of new windows at 1
+    total = 0
 
     def __init__(self, parent):
         SettingTimerWindow.total = 1
@@ -299,11 +287,10 @@ class SettingTimerWindow(tk.Toplevel):
         lbl3 = tk.Label(inner_frame, text='Tags')
         self.time_field = tk.Entry(inner_frame, width=20)
         self.task_field = tk.Entry(inner_frame, width=20)
-        self.time_field.insert(0,  "00:00:00")
+        self.time_field.insert(0,  "00:00")
 
         lbl1.pack(side='top')
         self.time_field.pack(side='top')
-
         lbl2.pack(side='top')
         self.task_field.pack()
         lbl3.pack(side='top')
@@ -315,55 +302,20 @@ class SettingTimerWindow(tk.Toplevel):
         
         self.activities = ['Work', 'Study', 'Chill', 'Sport', 'Games', 'Read', 'Cooking', 'Nothing']
         self.act_val = tk.IntVar()
-        work = tk.Radiobutton(radio_frame,
-                              text = self.activities[0],
-                              variable=self.act_val,
-                              value = 0)
 
-        study = tk.Radiobutton(radio_frame,
-                              text = self.activities[1],
-                              variable=self.act_val,
-                              value = 1)
+        val = 0
+        for frame in (radio_frame, radio_frame_2):
+            for _ in range(4):
+                tk.Radiobutton(frame,
+                               text = self.activities[val],
+                               variable = self.act_val,
+                               value = val).pack(side='left')
+                val+=1
 
-        chill = tk.Radiobutton(radio_frame,
-                              text = self.activities[2],
-                              variable=self.act_val,
-                              value = 2)
-
-        sport = tk.Radiobutton(radio_frame,
-                              text = self.activities[3],
-                              variable=self.act_val,
-                              value = 3)
-
-        games = tk.Radiobutton(radio_frame_2,
-                              text = self.activities[4],
-                              variable=self.act_val,
-                              value = 4)
-
-        reading = tk.Radiobutton(radio_frame_2,
-                              text = self.activities[5],
-                              variable=self.act_val,
-                              value = 5)
-
-        cook = tk.Radiobutton(radio_frame_2,
-                              text = self.activities[6],
-                              variable=self.act_val,
-                              value = 6)
-
-        nothing = tk.Radiobutton(radio_frame_2,
-                              text = self.activities[7],
-                              variable=self.act_val,
-                              value = 7)
-
-        for i in (work, study, chill, sport):
-            i.pack(side='left')
-        for i in (games, reading, cook, nothing):
-            i.pack(side='left')
-
-        btn1 = ttk.Button(inner_frame,
-                          text='To the timer...',
-                          command=lambda: self.time_it(parent))
-        btn1.pack(side='top', pady=10)
+        ttk.Button(inner_frame,
+                   text='To the timer...',
+                   command=lambda: self.time_it(parent)
+                   ).pack(side='top', pady=10)
 
         
     def time_it(self, controller):
@@ -373,28 +325,28 @@ class SettingTimerWindow(tk.Toplevel):
         time = self.time_field.get()
         task = self.task_field.get()
         act = self.activities[self.act_val.get()]
-        min_total = int(time[:2]) * 60 + int(time[3:5])
-        print(act)
+        min_total = int(time[:2]) * 60 + int(time[3:])
         if not task:
             task = 'Just for fun!'
+
         try:
-            time = datetime.datetime.strptime(time, '%H:%M:%S')
+            time = datetime.datetime.strptime(time, '%H:%M')
         except ValueError:
             # parent argument for the messagebox is added to get box appear in front of toplevel
             messagebox.showerror('Wrong Data/Time Format',
-                                 'You need to enter time in HH:MM:SS-format',
+                                 'You need to enter time in HH:MM-format',
                                   parent=self) 
             self.time_field.delete(0, 'end')
-            self.time_field.insert(0, "00:00:00")
+            self.time_field.insert(0, "00:00")
         else:
-            if controller.timer_check: # если таймер запущен
+            if controller.timer_check:
                 if messagebox.askyesno('Restart timer',
                                         'Do you want to restart timer?',
                                         parent=self):
                     print('Here we restart')
-                    controller.update_timer(time, task, act, min_total, True) ######
+                    controller.update_timer(time, task, act, min_total, True)
             else:
-                controller.update_timer(time, task, act, min_total)  #####
+                controller.update_timer(time, task, act, min_total)
             self.close()
 
     def close(self):
@@ -464,18 +416,18 @@ class SettingsWindow(tk.Toplevel):
         btn_container.pack(side='left')
         smt_container.pack(side='top')
 
-
 # i'll try to do something with gif-files
 
         self.pic_lbl = tk.Label(pic_container)
-        self.set_picture(TIMER_BUTTON)
+        self.set_picture(parent.get_cur_pic) # i don't like it
 
         btn1 = ttk.Button(btn_container, text='Change tomato', command = self.change_tomato)
         btn2 = ttk.Button(btn_container, text='Change sound', command = self.change_sound)
+        self.smt_btn = ttk.Button(smt_container, text='Submit', command= self.submit)
+
         self.hidden_var = tk.StringVar()
         self.hidden_var.set(value='')
         self.hidden_label = tk.Label(btn_container, textvariable=self.hidden_var)
-        self.smt_btn = ttk.Button(smt_container, text='Submit', command= self.submit)
 
         self.pic_lbl.pack(fill='both', expand=True)
         btn1.pack(fill='both', expand=True)
@@ -490,9 +442,7 @@ class SettingsWindow(tk.Toplevel):
         self.pic_lbl.image = data
 
     def change_tomato(self):
-        print(self.pic)
         pic = fd.askopenfilename(initialdir=os.path.dirname(os.path.abspath(__file__))+'\\pics')
-        print(pic)
         try:
             self.set_picture(pic)
             self.pic = pic
@@ -508,10 +458,8 @@ class SettingsWindow(tk.Toplevel):
             name = sound.split('/')[-1]
             if fmt == 'wav':
                 self.hidden_var.set(value=name)
-                print(self.hidden_label['text'])
-                winsound.PlaySound(sound, winsound.SND_NOSTOP)
+                winsound.PlaySound(sound, winsound.SND_ASYNC)
                 self.sound = sound
-                print(self.hidden_label['text'])
             else:
                 messagebox.showinfo('Wrong sound-format!', message='File must be in WAV-format!')
         except IndexError:

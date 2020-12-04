@@ -125,7 +125,6 @@ def update_data(data_lst:list):
     # finally we change all data in buffer_zone
     for k, v in zip(md['buffer_zone'], data_lst):
         md['buffer_zone'][k] = v
-        print(md['buffer_zone'])
 
     update_graph_data(md, data_lst)
 
@@ -177,8 +176,3 @@ try:
 except OSError:
     with open(os.path.dirname(os.path.abspath(__file__))+'\\test.json', 'w') as test:
         json.dump(main_data, test, indent=4)
-
-
-
-if __name__ == "__main__":
-    print(os.path.dirname(os.path.abspath((__file__))))
