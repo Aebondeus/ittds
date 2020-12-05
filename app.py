@@ -1,5 +1,5 @@
 import json_keep as jk
-from plot_stat import WorkingBar, BarPlotStat, PiePlotStat, LaunchesTable
+from plot_stat import BarPlotStat, PieChartStat, LaunchesTable
 import datetime
 import os.path
 import PIL
@@ -13,8 +13,11 @@ import winsound
 FONT_FOR_TIMER = ('Times New Roman', 20)
 
 class MainApp(tk.Tk):
-    """Root part of the app. It is create all main things
-       and contain some logic for other classes."""
+    """
+    Root part of the app. It is creates all main things
+    and contains some logic for other classes.
+    """
+
     def __init__(self):
         tk.Tk.__init__(self)
         self.title('Pomodorro Timer')
@@ -42,18 +45,18 @@ class MainApp(tk.Tk):
         self.after_id = None # id for after_cancel
         self.stop_val = 0
 
+        self.minutes_val = 0 # attribute that gets minutes, then passing them to the time_counter
+        self.fixed_val = None # fixed_value - attribute that catch initial value of minutes set
+        self.new_val = None # new_value - attribute for accumulating elapsed seconds. Accum occurs by subtstracting this value from the fixed_val
+        self.res_val = datetime.timedelta() # result_value - attribute that accumulate elapsed seconds
+        self.cur_hour = int() # attribute that catch value of running time
+        self.cur_res_val = 0 # attribute that catch curent value of difference between fixed_val and new_val
+
         self.timer_check = False 
         self.new_hour_flag = False
         self.end_timer_flag = False
         self.time_counter = {} # dict for collecting time
         self.time_check() # checking current time
-
-        self.cur_hour = int() # attr that catch value of running time
-        self.cur_res_val = 0 # attr that catch curent value of difference between fixed_val and new_val
-        self.minutes_val = 0 # attr that gets minutes, then passing them to the time_counter
-        self.fixed_val = None # fixed_value - attr that catch initial value of minutes set
-        self.new_val = None # new_value - attr for accumulating elapsed seconds. Accum occurs by subtstracting this value from the fixed_val
-        self.res_val = datetime.timedelta() # result_value - attr that accumulate elapsed seconds
 
         self.start_time = ''
         self.stop_time = ''
@@ -185,6 +188,7 @@ class MainApp(tk.Tk):
         """
         self.fixed_val = self.new_val
         self.minutes_val += 1
+        
         if cur_res_val:
             if self.cur_hour == 23:
                 self.time_counter[str(0)] = 0
@@ -374,7 +378,7 @@ class StatisticWindow(tk.Toplevel):
 
         self.frames = {}
 
-        for F in (BarPlotStat, PiePlotStat, LaunchesTable):
+        for F in (BarPlotStat, PieChartStat, LaunchesTable):
             fr = F(inner_frame, self)
             self.frames[F] = fr
             fr.grid(row=0, column=0, sticky='nsew')
@@ -390,12 +394,18 @@ class StatisticWindow(tk.Toplevel):
         self.destroy()
 
 class SettingsWindow(tk.Toplevel):
+
+    """
+    Class that allow to change picture on the button of timer
+    or sound that played when timer stopped
+    """
     total = 0
+
     def __init__(self, parent):
         SettingsWindow.total += 1
         tk.Toplevel.__init__(self)
         self.title('Settings')
-        self.geometry('250x200')
+        self.geometry('250x200+%d+%d' % parent.set_geometry())
         self.iconbitmap(os.path.dirname(os.path.abspath(__file__))+'\\icons\\settings.ico')
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", func=lambda: self.close())

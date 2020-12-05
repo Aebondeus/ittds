@@ -1,4 +1,8 @@
+"""
+This part of the app creates the necessary graphs/table
+"""
 import json_keep as jk
+from datetime import date
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
@@ -37,8 +41,10 @@ class WorkingBar:
                 self.bar.figure.canvas.draw_idle()
 
 class BarPlotStat(tk.Frame):
-    """The class draws a graph that shows the number of minutes
-    that the user focused on their tasks, per day, week, month, and year"""
+    """
+    The class draws a graph that shows the number of minutes
+    a user has focused on their tasks, per day, week, month, and year
+    """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -47,7 +53,7 @@ class BarPlotStat(tk.Frame):
         btn_frame.pack()
         plot_frame.pack()
 
-        btn1 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
+        btn1 = ttk.Button(btn_frame, text='Pie Chart', command = lambda: controller.switch_page(PieChartStat))
         btn2 = ttk.Button(btn_frame, text='Table', command = lambda: controller.switch_page(LaunchesTable))
         btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
@@ -80,6 +86,7 @@ class BarPlotStat(tk.Frame):
     def create_graph(self, *data):
         x, y = data
         bars = self.ax.bar(x, y, color='c')
+
         if len(x) > 12:
             if len(x) == 31:
                 arr = np.arange(0, 32, 7)
@@ -90,6 +97,7 @@ class BarPlotStat(tk.Frame):
             elif len(x) == 24:
                 arr = np.concatenate((np.array([0]), np.arange(0, 19, 6), np.array([23])))
                 self.ax.set_xticks(arr)
+
         for bar in bars:
             annot = self.ax.annotate('', xy=(-1,-10), xytext=(-20, 18), textcoords='offset points',
                                     bbox=dict(boxstyle='round', fc='w'),
@@ -115,8 +123,8 @@ class BarPlotStat(tk.Frame):
         self.canvas.draw()
 
 
-class PiePlotStat(tk.Frame):
-    '''The graph shows the percentage of tags selected by the user for any task'''
+class PieChartStat(tk.Frame):
+    '''A graph that shows the percentage of tags selected by the user for any task'''
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
    
@@ -137,6 +145,7 @@ class PiePlotStat(tk.Frame):
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, plot_frame)
         self.canvas.draw()
+
         labels, perc = self.get_data()
         self.ax.pie(perc, labels=labels, autopct='%1.1f%%')
         self.fig.suptitle('Distribution by tags', size=20, weight=5)
@@ -153,6 +162,7 @@ class PiePlotStat(tk.Frame):
 
 
 class LaunchesTable(tk.Frame):
+    """A table that show statistic of launches of the timer application"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -163,8 +173,8 @@ class LaunchesTable(tk.Frame):
 
         self.fold_iid = {}
 
-        btn1 = ttk.Button(btn_frame, text='Bar Plot', command = lambda: controller.switch_page(BarPlotStat))
-        btn2 = ttk.Button(btn_frame, text='Pie Plot', command = lambda: controller.switch_page(PiePlotStat))
+        btn1 = ttk.Button(btn_frame, text='Pie Chart', command = lambda: controller.switch_page(PieChartStat))
+        btn2 = ttk.Button(btn_frame, text='Bar Plot', command = lambda: controller.switch_page(BarPlotStat))
 
         hiden_lbl = tk.Label(plot_frame, text='History of your launches', font=('Camria', 16))
         hiden_lbl.pack(side='top', pady=10)
@@ -172,6 +182,7 @@ class LaunchesTable(tk.Frame):
         cols = ('one','two','three','four')
         col_names = ('Minutes','Interval', 'Task', 'Tag')
         cols_width = (60, 70, 200, 70)
+
         table = ttk.Treeview(plot_frame, columns=cols, height=18)
         scrollbar = ttk.Scrollbar(plot_frame, orient='vertical', command=table.yview)
         scrollbar.pack(side='right', fill='y')
@@ -187,7 +198,7 @@ class LaunchesTable(tk.Frame):
         btn1.pack(side='left', padx=10)
         btn2.pack(side='left')
 
-    def get_data(self, table):
+    def get_data(self, table: ttk.Treeview):
         working_dct = jk.get_launch_data()
         sorted_date = sorted(working_dct, reverse=True)
         id = 1
@@ -198,9 +209,10 @@ class LaunchesTable(tk.Frame):
             for values in working_dct[date]:
                 table.insert(folder, 'end', values=values)
             
-    def update_data(self, table):
+    def update_data(self, table: ttk.Treeview):
         work_dict = jk.get_launch_data()
         sorted_date = sorted(work_dict, reverse=True)
+
         if len(sorted_date) > len(self.fold_iid): # if we have new date in launches
             items = table.get_children()
             for item in items:
