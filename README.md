@@ -8,7 +8,7 @@ As a someone who learn a Python, it was very important for me to stay focused on
 
 ## Main features
 
-Yes, it's still a simple countdown timer. 
+Yes, it's still a simple countdown timer. Currently available only for Windows.
 
 When setting up a timer, you can specify the type of action that you plan to perform during this time period, as well as select the tag that corresponds to this action. Data about the time spent usefully (**or not, it's up to you**) will be recorded in a json file.
 
@@ -20,5 +20,6 @@ You can change the button to start the timer and the sound that the timer make i
 ## TODO:
 * Try to implement minute tracking for any day, week, month or year, not just the current one.
 * Add a features that help the app support gif animation and other sound formats
+* Try to make the application available for UNIX
 
 That's all for now. I'll be happy to have any comments regarding the code.
